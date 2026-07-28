@@ -11,8 +11,34 @@
             background: #000; color: #FFF; margin: 0; padding: 20px;
             display: flex; flex-direction: column; align-items: center;
         }
-        /* Camera draait onzichtbaar op de achtergrond */
-        video { display: none; }
+        /* Camera preview: zichtbaar zodra een modus gestart is */
+        video {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 12px;
+            border: 3px solid #555;
+            margin-top: 15px;
+            background: #111;
+        }
+        video.actief { display: block; }
+
+        /* Geeft aan welk deel van het beeld gescand wordt (film = onderste strook) */
+        .scan-kader {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+        .scan-strook {
+            display: none;
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 40%;
+            border-top: 3px dashed #E6B800;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        .scan-strook.actief { display: block; }
         
         .menu-knop {
             width: 100%; max-width: 400px; padding: 40px 20px;
@@ -50,21 +76,26 @@
 
     <div id="status-scherm">
         <div id="status-bericht"></div>
+
+        <div class="scan-kader">
+            <video id="camera" autoplay playsinline muted></video>
+            <div id="scan-strook" class="scan-strook"></div>
+        </div>
+
         <div id="tekst-vak">Wachtend op keuze...</div>
         <button id="btn-stop" class="menu-knop stop-knop" onclick="stopAlles()">STOP & TERUG</button>
     </div>
 
-    <video id="camera" autoplay playsinline></video>
-
     <script>
         const video = document.getElementById('camera');
+        const scanStrook = document.getElementById('scan-strook');
         const tekstVak = document.getElementById('tekst-vak');
         const statusBericht = document.getElementById('status-bericht');
         const stopBtn = document.getElementById('btn-stop');
         let scanInterval;
         let huidigeModus = "";
 
-        // Camera direct starten bij openen
+        // Camera direct starten bij openen (achtercamera)
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
             .then(stream => { video.srcObject = stream; });
 
@@ -75,12 +106,17 @@
             document.getElementById('titel').style.display = 'none';
             stopBtn.style.display = 'block';
 
+            // Camera zichtbaar maken zodat je kunt zien wat je richt
+            video.classList.add('actief');
+
             if (modus === 'film') {
-                statusBericht.innerText = "Modus: Film (Richt op TV)";
+                statusBericht.innerText = "Modus: Film (Richt op TV — tekst in gestippeld vak = wat gescand wordt)";
+                scanStrook.classList.add('actief');
                 // Scan elke 2 seconden voor ondertitels
                 scanInterval = setInterval(() => scanTekst(true), 2000);
             } else {
                 statusBericht.innerText = "Modus: Boek (Houd stil boven pagina)";
+                scanStrook.classList.remove('actief');
                 // Scan elke 5 seconden voor een hele pagina
                 scanInterval = setInterval(() => scanTekst(false), 5000);
             }
